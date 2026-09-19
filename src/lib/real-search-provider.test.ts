@@ -1,6 +1,11 @@
 import { describe, expect, it, vi } from "vitest";
 import { TtlCache } from "./cache";
-import { createRealSearchProvider, RealSearchProvider, type SearchBackend } from "./real-search-provider";
+import {
+  BraveSearchProvider,
+  createRealSearchProvider,
+  RealSearchProvider,
+  type SearchBackend,
+} from "./real-search-provider";
 import type { SearchResult } from "./providers";
 
 const realResult: SearchResult = {
@@ -20,7 +25,63 @@ describe("real search provider", () => {
   });
 
   it("fails closed when real credentials are missing", () => {
-    expect(() => createRealSearchProvider({})).toThrow(/not configured/i);
+    expect(() => createRealSearchProvider({ SEARCH_PROVIDER: "brave" })).toThrowError(expect.objectContaining({
+      code: "REAL_SEARCH_NOT_CONFIGURED",
+    }));
+  });
+
+  it("maps Brave Web Search results into the common SearchProvider contract", async () => {
+    let capturedUrl: URL | RequestInfo | undefined;
+    let capturedInit: RequestInit | undefined;
+    const fetcher = (async (input: URL | RequestInfo, init?: RequestInit) => {
+      capturedUrl = input;
+      capturedInit = init;
+      return new Response(JSON.stringify({
+        web: { results: [
+          { title: "Apex Logistics", url: "https://apex.co.ke/about", description: "Heavy haulage in Kenya" },
+          { title: "Missing URL" },
+        ] },
+      }), { status: 200, headers: { "Content-Type": "application/json" } });
+    }) as typeof fetch;
+    const provider = new BraveSearchProvider("test-key", fetcher, new TtlCache<SearchResult[]>(60_000));
+
+    const results = await provider.search({ query: "heavy haulage company Kenya", country: "Kenya", limit: 5, page: 2 });
+
+    expect(results).toHaveLength(1);
+    expect(results[0]).toMatchObject({
+      title: "Apex Logistics",
+      url: "https://apex.co.ke/about",
+      snippet: "Heavy haulage in Kenya",
+      provider: "Brave Search API",
+      isMock: false,
+    });
+    const url = new URL(String(capturedUrl));
+    expect(url.origin + url.pathname).toBe("https://api.search.brave.com/res/v1/web/search");
+    expect(url.searchParams.get("q")).toBe("heavy haulage company Kenya");
+    expect(url.searchParams.get("count")).toBe("5");
+    expect(url.searchParams.get("offset")).toBe("1");
+    expect(capturedInit?.headers).toMatchObject({ "X-Subscription-Token": "test-key" });
+  });
+
+  it("returns structured provider errors for Brave HTTP failures", async () => {
+    const fetcher = vi.fn(async () => new Response(JSON.stringify({ message: "Rate limit exceeded" }), {
+      status: 429,
+      headers: { "Content-Type": "application/json" },
+    })) as unknown as typeof fetch;
+    const provider = new BraveSearchProvider("test-key", fetcher, new TtlCache<SearchResult[]>(60_000));
+
+    await expect(provider.search({ query: "q", country: "Kenya" })).rejects.toMatchObject({
+      code: "SEARCH_PROVIDER_HTTP_ERROR",
+      status: 502,
+      retryable: true,
+    });
+  });
+
+  it("selects Brave as the configured real provider", () => {
+    expect(createRealSearchProvider({
+      SEARCH_PROVIDER: "brave",
+      BRAVE_SEARCH_API_KEY: "test-key",
+    })).toBeInstanceOf(BraveSearchProvider);
   });
 
   it("rejects Mock-labelled rows from a real backend", async () => {

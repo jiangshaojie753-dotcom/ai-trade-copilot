@@ -54,7 +54,7 @@ Every public business table has `user_id`, RLS ownership policies and explicit a
 ## Provider architecture
 
 - `AIProvider`: structured planning, buyer analysis and inquiry analysis. No real AI adapter is connected; current discovery planning and analysis are deterministic and evidence-grounded.
-- `SearchProvider`: `MockSearchProvider` and `RealSearchProvider`. The first real backend is Google Programmable Search JSON API, selected with `SEARCH_PROVIDER=google_cse`.
+- `SearchProvider`: `MockSearchProvider` and `RealSearchProvider`. Brave Search is the preferred real backend, selected with `SEARCH_PROVIDER=brave`; the Google adapter remains compatibility-only.
 - `EnrichmentProvider`: interface only. Out of Phase 2 scope.
 - `EmailVerificationProvider`: interface only. Out of Phase 2 scope.
 
@@ -116,14 +116,14 @@ Phase 1 is complete. Phase 2 is in progress. Provider-ready real discovery, Auth
 
 ### Real-data functions
 
-- Google search request code when configured
+- Brave Search request code when configured; Google remains compatibility-only
 - Filtering and extraction from provider results
 - Public official-website fetch and public email/phone/WhatsApp/social extraction
 - Evidence ledger and deterministic score over real results
 
 ## Environment variables
 
-See `.env.example`. Important variables: `NEXT_PUBLIC_SUPABASE_URL`, `NEXT_PUBLIC_SUPABASE_PUBLISHABLE_KEY`, `SUPABASE_SECRET_KEY`, compatibility legacy Supabase keys, `AI_PROVIDER`, `AI_PROVIDER_API_KEY`, `SEARCH_PROVIDER`, `SEARCH_API_KEY`, `GOOGLE_CSE_ID`, `ENRICHMENT_PROVIDER`, `ENRICHMENT_API_KEY`, `EMAIL_VERIFICATION_PROVIDER`, and `EMAIL_VERIFICATION_API_KEY`.
+See `.env.example`. Important variables: `NEXT_PUBLIC_SUPABASE_URL`, `NEXT_PUBLIC_SUPABASE_PUBLISHABLE_KEY`, `SUPABASE_SECRET_KEY`, compatibility legacy Supabase keys, `AI_PROVIDER`, `AI_PROVIDER_API_KEY`, `SEARCH_PROVIDER`, `BRAVE_SEARCH_API_KEY`, compatibility Google variables, `ENRICHMENT_PROVIDER`, `ENRICHMENT_API_KEY`, `EMAIL_VERIFICATION_PROVIDER`, and `EMAIL_VERIFICATION_API_KEY`.
 
 Never commit `.env`, `.env.local`, API keys, passwords or secrets.
 
@@ -154,13 +154,13 @@ Use Node.js 22 or later.
 
 - No Search API credentials, so Real mode stops with `REAL_SEARCH_NOT_CONFIGURED`.
 - Supabase is deployed to the existing `QingFeng / ai-trade-copilot` project. Keep `.env.local` untracked and never expose secret/service-role keys.
-- Google API quota, billing and whole-web Programmable Search configuration must be confirmed by the owner.
+- Brave Search API subscription, quota and billing must be confirmed by the owner before live testing.
 - Public websites may block automated requests, redirect, return non-HTML, or omit contact data; preserve `Unknown`.
 - AI planning/analysis remains deterministic until a real AI adapter is selected.
 
 ## Next phase task
 
-Finish Phase 2 only: configure and live-test the first Search API, validate real Kenyan company results, select the single Supabase project, apply reviewed migrations, implement the Supabase repository and run advisors. Do not enter Phase 3.
+Finish Phase 2 only: configure and live-test Brave Search, validate real Kenyan company results, and verify the existing Supabase CRM path. Do not enter Phase 3 or create another Supabase project.
 
 ## Prohibited actions
 

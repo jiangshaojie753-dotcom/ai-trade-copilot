@@ -9,6 +9,13 @@ type GoogleSearchResponse = {
   error?: { message?: string };
 };
 
+type BraveSearchResponse = {
+  web?: { results?: Array<{ title?: string; url?: string; description?: string }> };
+  message?: string;
+  detail?: string;
+  error?: { message?: string; detail?: string };
+};
+
 export type SearchBackend = {
   readonly name: string;
   search(input: SearchInput): Promise<SearchResult[]>;
@@ -68,6 +75,81 @@ export class GoogleProgrammableSearchBackend implements SearchBackend {
   }
 }
 
+export class BraveSearchBackend implements SearchBackend {
+  readonly name = "Brave Search API";
+
+  constructor(
+    private readonly apiKey: string,
+    private readonly fetcher: FetchLike = fetch,
+  ) {}
+
+  async search(input: SearchInput): Promise<SearchResult[]> {
+    const limit = Math.max(1, Math.min(input.limit ?? 10, 20));
+    const page = Math.max(1, input.page ?? 1);
+    const params = new URLSearchParams({
+      q: input.query,
+      count: String(limit),
+      offset: String(page - 1),
+      safesearch: "moderate",
+      spellcheck: "true",
+      text_decorations: "false",
+    });
+    let response: Response;
+    try {
+      response = await this.fetcher(`https://api.search.brave.com/res/v1/web/search?${params}`, {
+        headers: {
+          Accept: "application/json",
+          "X-Subscription-Token": this.apiKey,
+        },
+        signal: AbortSignal.timeout(12_000),
+      });
+    } catch (error) {
+      throw new ProviderError(
+        error instanceof Error ? `Brave Search request failed: ${error.message}` : "Brave Search request failed.",
+        "SEARCH_PROVIDER_REQUEST_FAILED",
+        502,
+        true,
+      );
+    }
+
+    let payload: BraveSearchResponse;
+    try {
+      payload = await response.json() as BraveSearchResponse;
+    } catch {
+      throw new ProviderError(
+        `Brave Search returned an invalid response (HTTP ${response.status}).`,
+        "SEARCH_PROVIDER_INVALID_RESPONSE",
+        502,
+        response.status >= 500 || response.status === 429,
+      );
+    }
+    if (!response.ok) {
+      throw new ProviderError(
+        payload.message ?? payload.detail ?? payload.error?.message ?? payload.error?.detail
+          ?? `Brave Search returned HTTP ${response.status}.`,
+        "SEARCH_PROVIDER_HTTP_ERROR",
+        response.status >= 500 || response.status === 429 ? 502 : 400,
+        response.status >= 500 || response.status === 429,
+      );
+    }
+
+    const retrievedAt = new Date().toISOString();
+    return (payload.web?.results ?? []).flatMap((item, index) => {
+      if (!item.title || !item.url) return [];
+      return [{
+        id: `brave-${page}-${index}-${stableId(item.url)}`,
+        title: item.title,
+        url: item.url,
+        snippet: item.description ?? "",
+        query: input.query,
+        provider: this.name,
+        retrievedAt,
+        isMock: false,
+      } satisfies SearchResult];
+    });
+  }
+}
+
 export class RealSearchProvider implements SearchProvider {
   readonly isMock = false;
   readonly name: string;
@@ -78,7 +160,8 @@ export class RealSearchProvider implements SearchProvider {
 
   async search(input: SearchInput): Promise<SearchResult[]> {
     const page = Math.max(1, input.page ?? 1);
-    const key = `${normalizeCachePart(input.query)}|${normalizeCachePart(input.country)}|page:${page}`;
+    const limit = Math.max(1, input.limit ?? 10);
+    const key = `${normalizeCachePart(this.name)}|${normalizeCachePart(input.query)}|${normalizeCachePart(input.country)}|limit:${limit}|page:${page}`;
     const cached = this.cache.get(key);
     if (cached) return cached;
     const results = await this.backend.search(input);
@@ -90,30 +173,56 @@ export class RealSearchProvider implements SearchProvider {
   }
 }
 
-export function createRealSearchProvider(env: Record<string, string | undefined> = process.env): RealSearchProvider {
+export class BraveSearchProvider implements SearchProvider {
+  readonly name = "Brave Search API";
+  readonly isMock = false;
+  private readonly provider: RealSearchProvider;
+
+  constructor(apiKey: string, fetcher: FetchLike = fetch, cache = searchCache) {
+    this.provider = new RealSearchProvider(new BraveSearchBackend(apiKey, fetcher), cache);
+  }
+
+  search(input: SearchInput): Promise<SearchResult[]> {
+    return this.provider.search(input);
+  }
+}
+
+export function createRealSearchProvider(env: Record<string, string | undefined> = process.env): SearchProvider {
   const provider = (env.SEARCH_PROVIDER ?? "").trim().toLowerCase();
   if (!provider) {
     throw new ProviderError(
-      "Real Search is not configured. Set SEARCH_PROVIDER, SEARCH_API_KEY and GOOGLE_CSE_ID in .env.local.",
+      "Real Search is not configured. Set SEARCH_PROVIDER=brave and BRAVE_SEARCH_API_KEY in .env.local.",
       "REAL_SEARCH_NOT_CONFIGURED",
       503,
       false,
     );
   }
-  if (provider !== "google_cse") {
-    throw new ProviderError(`Unsupported SEARCH_PROVIDER: ${provider}.`, "UNSUPPORTED_SEARCH_PROVIDER", 503, false);
+  if (provider === "brave") {
+    const apiKey = env.BRAVE_SEARCH_API_KEY?.trim();
+    if (!apiKey) {
+      throw new ProviderError(
+        "Brave Search is not configured. Set BRAVE_SEARCH_API_KEY in .env.local.",
+        "REAL_SEARCH_NOT_CONFIGURED",
+        503,
+        false,
+      );
+    }
+    return new BraveSearchProvider(apiKey);
   }
-  const apiKey = env.SEARCH_API_KEY?.trim();
-  const searchEngineId = env.GOOGLE_CSE_ID?.trim();
-  if (!apiKey || !searchEngineId) {
-    throw new ProviderError(
-      "Google Programmable Search requires SEARCH_API_KEY and GOOGLE_CSE_ID in .env.local.",
-      "REAL_SEARCH_NOT_CONFIGURED",
-      503,
-      false,
-    );
+  if (provider === "google_cse") {
+    const apiKey = env.SEARCH_API_KEY?.trim();
+    const searchEngineId = env.GOOGLE_CSE_ID?.trim();
+    if (!apiKey || !searchEngineId) {
+      throw new ProviderError(
+        "Google Programmable Search requires SEARCH_API_KEY and GOOGLE_CSE_ID in .env.local.",
+        "REAL_SEARCH_NOT_CONFIGURED",
+        503,
+        false,
+      );
+    }
+    return new RealSearchProvider(new GoogleProgrammableSearchBackend(apiKey, searchEngineId));
   }
-  return new RealSearchProvider(new GoogleProgrammableSearchBackend(apiKey, searchEngineId));
+  throw new ProviderError(`Unsupported SEARCH_PROVIDER: ${provider}.`, "UNSUPPORTED_SEARCH_PROVIDER", 503, false);
 }
 
 function stableId(value: string) {

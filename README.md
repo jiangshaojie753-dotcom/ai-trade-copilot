@@ -10,7 +10,7 @@ Phase 1 is complete. Phase 2 real customer discovery is provider-ready, and Supa
 | --- | --- |
 | Mock end-to-end discovery | Working; all fictional data is labelled `MOCK DATA` |
 | Structured Search Planner | Working; deterministic output with use case, intent and buyer type |
-| Real Search Provider | Google Programmable Search adapter implemented; needs API key and Search Engine ID |
+| Real Search Provider | Brave Search adapter implemented; needs `BRAVE_SEARCH_API_KEY` for live verification |
 | Company extraction and filtering | Working for provider results |
 | Public website research | Working for public HTML pages; missing values stay `Unknown` |
 | Buyer analysis | Evidence-based deterministic inference; a real AI provider is not connected |
@@ -40,12 +40,11 @@ Copy `.env.example` to `.env.local`. Keep `.env` and `.env.local` out of Git; bo
 For the first real search adapter:
 
 ```dotenv
-SEARCH_PROVIDER=google_cse
-SEARCH_API_KEY=
-GOOGLE_CSE_ID=
+SEARCH_PROVIDER=brave
+BRAVE_SEARCH_API_KEY=
 ```
 
-`SEARCH_API_KEY` is a Google API key with Custom Search JSON API access. `GOOGLE_CSE_ID` is the Programmable Search Engine ID. Confirm current quotas and billing in Google Cloud before enabling the API.
+Create a Brave Search API subscription and key in the [Brave Search API dashboard](https://api.search.brave.com/app/keys), then place the key only in `.env.local`. Never prefix it with `NEXT_PUBLIC_` or commit it. The older `google_cse` adapter remains available for compatibility but is not the recommended production configuration.
 
 For Supabase, prefer the current publishable/secret key model:
 
@@ -82,4 +81,4 @@ pnpm build
 
 Read `AGENTS.md` first, then `HANDOFF.md`, then run all four quality checks. Do not create a second Supabase project when one already exists. Do not present AI inference as fact or generate missing customer/contact data.
 
-The next recommended task is to synchronize the verified local commits to the existing GitHub repository, then configure and live-test `80T Lowbed Trailer + Kenya` with the Google search adapter. Stop before Phase 3 enrichment or automated outreach.
+The next recommended task is to configure `BRAVE_SEARCH_API_KEY` and live-test `80T Lowbed Trailer + Kenya` with the Brave search adapter. Stop before Phase 3 enrichment or automated outreach.

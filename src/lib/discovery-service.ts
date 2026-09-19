@@ -92,7 +92,7 @@ function createRealLead(company: Company, evidence: Evidence[], contacts: Lead["
     evidence,
     score,
     status: score.total >= 75 ? "Qualified" : "Researched",
-    source: "Google",
+    source: "AI Discovery",
     lastContact: null,
     nextFollowUp: null,
     notes: "Discovered from real public web search. Missing fields remain Unknown; no contact data was invented.",
