@@ -1,6 +1,6 @@
 # Supabase setup
 
-The intended cloud project is `QingFeng / ai-trade-copilot`, but this checkout has no project-ref link or `.env.local`. Link only that existing project. Do not create a second project.
+The cloud project is `QingFeng / ai-trade-copilot` (`lpurhtfaqfpzaykoedew`). It is deployed and live-verified. Never create or link a second project.
 
 ## Create or select the project
 
@@ -22,4 +22,4 @@ After migration, verify:
 - `anon` has no table privileges;
 - Security Advisor and Performance Advisor have no unreviewed critical findings.
 
-The app selects `SupabaseLeadRepository` when the public project URL/key are configured and otherwise uses `LocalStorageLeadRepository`. Cloud mode requires an authenticated user. Discovery also persists search jobs/queries/results, and inquiry analysis persists inquiry records.
+The app selects `SupabaseLeadRepository` when the public project URL/key are configured and otherwise uses `LocalStorageLeadRepository`. Cloud mode requires an authenticated user. Auth + RLS Lead create, new-client login/read, and cleanup were live-verified. Discovery also persists search jobs/queries/results, and inquiry analysis persists inquiry records.

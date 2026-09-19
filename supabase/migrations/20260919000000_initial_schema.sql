@@ -337,10 +337,10 @@ insert into public.users (id, display_name)
 select id, coalesce(raw_user_meta_data ->> 'display_name', email, 'Sales workspace') from auth.users
 on conflict (id) do nothing;
 
-revoke all on all tables in schema public from anon;
+revoke all on all tables in schema public from anon, authenticated;
 grant usage on schema public to authenticated;
 grant select, insert, update, delete on public.users, public.products, public.companies, public.company_evidence,
   public.contacts, public.leads, public.inquiries, public.search_jobs, public.search_queries, public.search_results,
   public.research_jobs, public.lead_scores, public.activities, public.buying_signals, public.ai_generations to authenticated;
 
-alter default privileges in schema public revoke all on tables from anon;
+alter default privileges in schema public revoke all on tables from anon, authenticated;

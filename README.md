@@ -4,7 +4,7 @@ AI Trade Copilot is an evidence-first AI B2B Sales Copilot for Chinese export sa
 
 ## Current status
 
-Phase 1 is complete. Phase 2 real customer discovery and Supabase persistence code are provider-ready. This checkout still needs the existing cloud project URL/key and live migration/search verification.
+Phase 1 is complete. Phase 2 real customer discovery is provider-ready, and Supabase persistence is deployed and live-verified on the existing cloud project. Real search still needs provider credentials and live verification.
 
 | Capability | Status |
 | --- | --- |
@@ -16,7 +16,7 @@ Phase 1 is complete. Phase 2 real customer discovery and Supabase persistence co
 | Buyer analysis | Evidence-based deterministic inference; a real AI provider is not connected |
 | Lead score | Working; fixed 100-point programmatic rubric |
 | CRM | LocalStorage fallback plus authenticated Supabase repository |
-| Supabase | Complete empty-database migration, email/password Auth UI and RLS repositories; cloud project not linked in this checkout |
+| Supabase | Deployed to `QingFeng / ai-trade-copilot`; Auth, RLS and cross-session Lead persistence live-verified |
 | Enrichment / email verification | Interfaces only; no provider connected |
 
 Real mode never silently falls back to Mock mode.
@@ -82,4 +82,4 @@ pnpm build
 
 Read `AGENTS.md` first, then `HANDOFF.md`, then run all four quality checks. Do not create a second Supabase project when one already exists. Do not present AI inference as fact or generate missing customer/contact data.
 
-The next recommended task is to link only the existing `QingFeng / ai-trade-copilot` Supabase project, apply and verify the reviewed migrations, then live-test `80T Lowbed Trailer + Kenya` with the Google search adapter. Stop before Phase 3 enrichment or automated outreach.
+The next recommended task is to synchronize the verified local commits to the existing GitHub repository, then configure and live-test `80T Lowbed Trailer + Kenya` with the Google search adapter. Stop before Phase 3 enrichment or automated outreach.

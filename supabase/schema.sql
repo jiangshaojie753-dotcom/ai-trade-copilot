@@ -167,12 +167,12 @@ begin
   end loop;
 end $$;
 
+revoke all on all tables in schema public from anon, authenticated;
 grant usage on schema public to authenticated;
 grant select, insert, update, delete on public.users, public.products, public.companies, public.company_evidence,
   public.contacts, public.leads, public.inquiries, public.search_jobs, public.search_queries, public.search_results,
   public.research_jobs, public.lead_scores, public.activities, public.buying_signals, public.ai_generations to authenticated;
-
-revoke all on all tables in schema public from anon;
+alter default privileges in schema public revoke all on tables from anon, authenticated;
 
 create or replace function private.handle_new_user()
 returns trigger
@@ -190,3 +190,10 @@ $$;
 revoke all on function private.handle_new_user() from public, anon, authenticated;
 drop trigger if exists on_auth_user_created on auth.users;
 create trigger on_auth_user_created after insert on auth.users for each row execute function private.handle_new_user();
+
+do $$
+begin
+  if to_regprocedure('public.rls_auto_enable()') is not null then
+    revoke execute on function public.rls_auto_enable() from public, anon, authenticated;
+  end if;
+end $$;

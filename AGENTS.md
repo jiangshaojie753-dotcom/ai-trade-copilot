@@ -91,7 +91,7 @@ Each component links to supporting evidence IDs. Without verified buying evidenc
 
 ## Current phase
 
-Phase 1 is complete. Phase 2 is in progress. Provider-ready real discovery, Auth UI, complete initial migration and Supabase repository code are implemented. No real Search API call or cloud migration has been verified from this checkout because credentials/project linking are absent.
+Phase 1 is complete. Phase 2 is in progress. Provider-ready real discovery, Auth UI, the complete initial migration and Supabase repositories are implemented. Supabase persistence is deployed and live-verified on the existing project; no real Search API call has been tested because search credentials are absent.
 
 ### Working features
 
@@ -112,7 +112,7 @@ Phase 1 is complete. Phase 2 is in progress. Provider-ready real discovery, Auth
 - Known-company `/research` flow
 - Contact enrichment
 - Email verification
-- Cloud migration/advisor verification (implementation exists but this checkout is not linked)
+- Real Search API credentials and live acceptance test
 
 ### Real-data functions
 
@@ -153,7 +153,7 @@ Use Node.js 22 or later.
 ## Known problems
 
 - No Search API credentials, so Real mode stops with `REAL_SEARCH_NOT_CONFIGURED`.
-- The intended Supabase project exists as `QingFeng / ai-trade-copilot`, but this checkout has no project ref or environment configuration.
+- Supabase is deployed to the existing `QingFeng / ai-trade-copilot` project. Keep `.env.local` untracked and never expose secret/service-role keys.
 - Google API quota, billing and whole-web Programmable Search configuration must be confirmed by the owner.
 - Public websites may block automated requests, redirect, return non-HTML, or omit contact data; preserve `Unknown`.
 - AI planning/analysis remains deterministic until a real AI adapter is selected.
