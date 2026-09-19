@@ -1,15 +1,61 @@
-# Atlas — AI B2B Sales Copilot
+# AI Trade Copilot
 
-Phase 1 evidence-first sales intelligence prototype for export sales teams.
+AI Trade Copilot is an evidence-first AI B2B Sales Copilot for Chinese export sales teams. A user enters a product and target country; the application plans buyer-oriented searches, discovers companies, researches public websites, separates facts from inference, calculates a deterministic lead score, and saves leads to a CRM workspace.
 
-## Run locally
+## Current status
+
+Phase 1 is complete. Phase 2 real customer discovery is provider-ready but not live-tested because no Search API key or Supabase project is configured.
+
+| Capability | Status |
+| --- | --- |
+| Mock end-to-end discovery | Working; all fictional data is labelled `MOCK DATA` |
+| Structured Search Planner | Working; deterministic output with use case, intent and buyer type |
+| Real Search Provider | Google Programmable Search adapter implemented; needs API key and Search Engine ID |
+| Company extraction and filtering | Working for provider results |
+| Public website research | Working for public HTML pages; missing values stay `Unknown` |
+| Buyer analysis | Evidence-based deterministic inference; a real AI provider is not connected |
+| Lead score | Working; fixed 100-point programmatic rubric |
+| CRM | Working with LocalStorage through a repository boundary |
+| Supabase | Complete reference schema and migration; no cloud project linked |
+| Enrichment / email verification | Interfaces only; no provider connected |
+
+Real mode never silently falls back to Mock mode.
+
+## Install and run
+
+Requirements: Node.js 22 or later and pnpm. Supabase client libraries dropped Node.js 20 support in 2026.
 
 ```bash
 pnpm install
+Copy-Item .env.example .env.local
 pnpm dev
 ```
 
-Open `http://localhost:3000`, choose **Discover Customers**, and run the pre-filled `80T Lowbed Trailer + Kenya` example. The app saves fictional Mock leads in browser storage so the CRM and detail pages remain usable after navigation.
+Open `http://localhost:3000`. Choose **Discover Customers**, select `REAL DATA` or `MOCK DATA`, and submit the form.
+
+## Environment variables
+
+Copy `.env.example` to `.env.local`. Keep `.env` and `.env.local` out of Git; both are covered by `.gitignore`.
+
+For the first real search adapter:
+
+```dotenv
+SEARCH_PROVIDER=google_cse
+SEARCH_API_KEY=
+GOOGLE_CSE_ID=
+```
+
+`SEARCH_API_KEY` is a Google API key with Custom Search JSON API access. `GOOGLE_CSE_ID` is the Programmable Search Engine ID. Confirm current quotas and billing in Google Cloud before enabling the API.
+
+For Supabase, prefer the current publishable/secret key model:
+
+```dotenv
+NEXT_PUBLIC_SUPABASE_URL=
+NEXT_PUBLIC_SUPABASE_PUBLISHABLE_KEY=
+SUPABASE_SECRET_KEY=
+```
+
+Legacy `NEXT_PUBLIC_SUPABASE_ANON_KEY` and `SUPABASE_SERVICE_ROLE_KEY` names remain documented for compatibility. Never expose a secret or service-role key to browser code.
 
 ## Quality checks
 
@@ -20,8 +66,20 @@ pnpm test
 pnpm build
 ```
 
-## Data safety
+## Project map
 
-This build does not call live search, enrichment or AI providers. Every fictional record is labelled **Mock Data**. Facts carry source metadata; AI conclusions are rendered as inference; missing contacts show Unknown.
+- `src/app/` — Next.js pages and route handlers
+- `src/lib/` — schemas, providers, search planning, discovery, research, scoring and repositories
+- `src/components/` — reusable UI
+- `supabase/schema.sql` — complete reference schema
+- `supabase/migrations/` — incremental database migrations
+- `docs/architecture.md` — technical architecture
+- `docs/supabase-setup.md` — one-project setup and verification guide
+- `AGENTS.md` — rules and context for any new Codex session
+- `HANDOFF.md` — concise account-switch handoff
 
-See [docs/architecture.md](docs/architecture.md) for the system design, routes, provider contracts, integration map and Phase 1–3 plan. The Supabase reference schema is at [supabase/schema.sql](supabase/schema.sql). No Supabase project or GitHub repository is created by this build.
+## Continue development
+
+Read `AGENTS.md` first, then `HANDOFF.md`, then run all four quality checks. Do not create a second Supabase project when one already exists. Do not present AI inference as fact or generate missing customer/contact data.
+
+The next recommended task is to create or select the single Supabase project, securely configure the environment, then live-test `80T Lowbed Trailer + Kenya` with the Google search adapter. Stop before Phase 3 enrichment or automated outreach.

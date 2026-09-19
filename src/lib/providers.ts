@@ -1,6 +1,6 @@
 import type { Company, Evidence, SearchPlan } from "./schemas";
 
-export type SearchInput = { query: string; country: string; limit?: number };
+export type SearchInput = { query: string; country: string; limit?: number; page?: number };
 export type SearchResult = {
   id: string;
   title: string;

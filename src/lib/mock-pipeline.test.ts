@@ -4,8 +4,8 @@ import { analyzeMockInquiry, createMockSearchPlan, runMockDiscovery } from "./mo
 describe("Mock Phase 1 workflow", () => {
   it("creates structured search queries from product and country", () => {
     const plan = createMockSearchPlan({ product: "80T Lowbed Trailer", country: "Kenya" });
-    expect(plan.queries.length).toBeGreaterThanOrEqual(4);
-    expect(plan.queries.every((item) => item.query.includes("Kenya"))).toBe(true);
+    expect(plan.search_queries.length).toBeGreaterThanOrEqual(4);
+    expect(plan.search_queries.every((item) => item.query.includes("Kenya") && item.use_case)).toBe(true);
   });
 
   it("runs through search, resolution, research, score and CRM payload", async () => {

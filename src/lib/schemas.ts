@@ -16,12 +16,16 @@ export const evidenceSchema = z.object({
 export const searchPlannerOutputSchema = z.object({
   product: z.string(),
   country: z.string(),
-  productSummary: z.string(),
-  useCases: z.array(z.string()).min(1),
+  use_cases: z.array(z.string()).min(1),
   industries: z.array(z.string()).min(1),
-  buyerProfiles: z.array(z.object({ type: z.string(), rationale: z.string() })).min(1),
-  decisionMakerRoles: z.array(z.string()).min(1),
-  queries: z.array(z.object({ query: z.string(), intent: z.string(), buyerType: z.string() })).min(1),
+  buyer_types: z.array(z.string()).min(1),
+  decision_maker_roles: z.array(z.string()).min(1),
+  search_queries: z.array(z.object({
+    query: z.string(),
+    intent: z.string(),
+    buyer_type: z.string(),
+    use_case: z.string(),
+  })).min(1),
 });
 
 export const leadScoreSchema = z.object({
@@ -50,6 +54,8 @@ export const companySchema = z.object({
   potentialProducts: z.array(z.string()),
   sourceUrl: z.string().url(),
   isMock: z.boolean(),
+  address: z.string().nullable().optional(),
+  publicBusinessPhone: z.string().nullable().optional(),
 });
 
 export const contactSchema = z.object({
@@ -59,6 +65,8 @@ export const contactSchema = z.object({
   linkedinUrl: z.string().url().nullable(),
   publicBusinessEmail: z.string().email().nullable(),
   publicBusinessPhone: z.string().nullable(),
+  publicWhatsApp: z.string().nullable().optional(),
+  socialLinks: z.array(z.string().url()).optional(),
   confidence: z.number().min(0).max(1),
   sourceUrl: z.string().url().nullable(),
   isMock: z.boolean(),

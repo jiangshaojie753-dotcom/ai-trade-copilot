@@ -1,4 +1,4 @@
-import { AlertTriangle, CheckCircle2, FlaskConical, Info, LoaderCircle } from "lucide-react";
+import { AlertTriangle, CheckCircle2, DatabaseZap, FlaskConical, Info, LoaderCircle } from "lucide-react";
 
 export function PageHeader({ eyebrow, title, description, action }: { eyebrow?: string; title: string; description: string; action?: React.ReactNode }) {
   return <header className="page-header"><div>{eyebrow ? <p className="eyebrow">{eyebrow}</p> : null}<h1>{title}</h1><p>{description}</p></div>{action}</header>;
@@ -6,6 +6,11 @@ export function PageHeader({ eyebrow, title, description, action }: { eyebrow?: 
 
 export function MockBanner({ compact = false }: { compact?: boolean }) {
   return <div className={`mock-banner ${compact ? "compact" : ""}`}><FlaskConical size={18} /><div><b>Mock Data</b><span>This demonstration uses fictional companies and simulated provider responses. Nothing shown is a real lead.</span></div></div>;
+}
+
+export function DataModeBanner({ mode, compact = false }: { mode: "mock" | "real"; compact?: boolean }) {
+  if (mode === "mock") return <MockBanner compact={compact} />;
+  return <div className={`data-banner real ${compact ? "compact" : ""}`}><DatabaseZap size={18} /><div><b>Real Data</b><span>Companies and facts come from public web sources. Buyer fit and demand are labelled as inference, not fact.</span></div></div>;
 }
 
 export function EmptyState({ icon, title, description, children }: { icon?: React.ReactNode; title: string; description: string; children?: React.ReactNode }) {

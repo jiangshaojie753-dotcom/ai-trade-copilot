@@ -1,5 +1,6 @@
 import { deduplicateCompanies, normalizeDomain } from "./entity-resolution";
 import { calculateLeadScore } from "./score";
+import { createStructuredSearchPlan } from "./search-planner";
 import {
   inquiryAnalysisSchema,
   leadSchema,
@@ -19,28 +20,8 @@ function id(prefix: string, seed: string) {
 }
 
 export function createMockSearchPlan(input: { product: string; country: string; city?: string; buyerType?: string }): SearchPlan {
-  const location = [input.city, input.country].filter(Boolean).join(" ");
-  const product = input.product.trim();
-  const plan: SearchPlan = {
-    product,
-    country: input.country,
-    productSummary: `${product} is heavy transport equipment used to move oversized machinery and project cargo.`,
-    useCases: ["Excavator transportation", "Bulldozer transportation", "Mining equipment movement", "Heavy project logistics"],
-    industries: ["Heavy haulage", "Construction", "Mining", "Equipment rental", "Commercial vehicle distribution"],
-    buyerProfiles: [
-      { type: input.buyerType && input.buyerType !== "Auto" ? input.buyerType : "Fleet operator", rationale: "Operates vehicles that move heavy equipment between sites." },
-      { type: "Dealer / distributor", rationale: "Resells commercial trailers to local transport operators." },
-      { type: "End user", rationale: "Owns heavy machinery and may require dedicated transport capacity." },
-    ],
-    decisionMakerRoles: ["Managing Director", "Procurement Manager", "Fleet Manager", "Operations Manager", "Equipment Manager"],
-    queries: [
-      { query: `heavy haulage company ${location}`, intent: "Find fleet operators", buyerType: "Fleet operator" },
-      { query: `mining contractor ${location}`, intent: "Find heavy-equipment end users", buyerType: "End user" },
-      { query: `heavy equipment rental ${location}`, intent: "Find equipment owners", buyerType: "End user" },
-      { query: `truck trailer dealer ${location}`, intent: "Find channel partners", buyerType: "Dealer" },
-    ],
-  };
-  return searchPlannerOutputSchema.parse(plan);
+  const plan = createStructuredSearchPlan(input);
+  return searchPlannerOutputSchema.parse({ ...plan, search_queries: plan.search_queries.slice(0, 4) });
 }
 
 export class MockSearchProvider implements SearchProvider {
@@ -135,32 +116,25 @@ function leadFromCompany(company: Company, product: string): Lead {
   return leadSchema.parse(lead);
 }
 
-export type DiscoveryResponse = {
-  mode: "mock";
-  jobId: string;
-  provider: string;
-  plan: SearchPlan;
-  searchResults: SearchResult[];
-  leads: Lead[];
-  stages: { key: string; label: string; count: number }[];
-};
+export type { DiscoveryResponse } from "./discovery-types";
 
-export async function runMockDiscovery(input: { product: string; country: string; city?: string; buyerType?: string }): Promise<DiscoveryResponse> {
+export async function runMockDiscovery(input: { product: string; country: string; city?: string; buyerType?: string }): Promise<import("./discovery-types").DiscoveryResponse> {
   const plan = createMockSearchPlan(input);
   const provider = new MockSearchProvider();
-  const nested = await Promise.all(plan.queries.map((item) => provider.search({ query: item.query, country: input.country })));
+  const nested = await Promise.all(plan.search_queries.map((item) => provider.search({ query: item.query, country: input.country })));
   const searchResults = nested.flat();
   const companies = deduplicateCompanies(companiesFromResults(searchResults, input.country));
   const leads = companies.map((company) => leadFromCompany(company, input.product));
   return {
     mode: "mock",
+    dataLabel: "MOCK DATA",
     jobId: `mock-job-${globalThis.crypto.randomUUID()}`,
     provider: provider.name,
     plan,
     searchResults,
     leads,
     stages: [
-      { key: "planner", label: "AI Search Planner", count: plan.queries.length },
+      { key: "planner", label: "Search Planner", count: plan.search_queries.length },
       { key: "search", label: "Mock Search", count: searchResults.length },
       { key: "extract", label: "Company Extraction", count: searchResults.length },
       { key: "resolve", label: "Entity Resolution", count: companies.length },
@@ -168,6 +142,8 @@ export async function runMockDiscovery(input: { product: string; country: string
       { key: "score", label: "Lead Scoring", count: leads.length },
       { key: "crm", label: "CRM", count: leads.length },
     ],
+    page: 1,
+    maxCompanies: 20,
   };
 }
 

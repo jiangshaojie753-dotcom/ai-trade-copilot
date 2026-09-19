@@ -22,6 +22,7 @@ export function calculateLeadScore(signals: ScoreSignals, evidence: Evidence[]):
   const breakdown = rules.map(([key, label, maxPoints]) => {
     const points = Math.max(0, Math.min(maxPoints, Math.round(signals[key])));
     const linked = evidence.filter((item) => {
+      if (item.value === "Unknown" || item.confidence <= 0) return false;
       if (key === "authenticity") return ["website", "company_name", "phone"].includes(item.field);
       if (key === "marketMatch") return ["country", "city"].includes(item.field);
       if (key === "reachability") return ["business_email", "contact_role"].includes(item.field);

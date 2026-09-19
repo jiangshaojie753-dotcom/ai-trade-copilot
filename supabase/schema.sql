@@ -1,4 +1,4 @@
--- Phase 1 reference schema. Apply through a generated Supabase migration after a project is selected.
+-- Phase 2 reference schema. Apply through reviewed migrations only after a project is selected.
 -- Every exposed table has RLS. Data API grants are explicit for the 2026 Supabase exposure model.
 
 create extension if not exists pgcrypto;
@@ -22,8 +22,9 @@ create table public.products (
 
 create table public.companies (
   id uuid primary key default gen_random_uuid(), user_id uuid not null references public.users(id) on delete cascade,
-  name text not null, legal_name text, domain text, website text, country text, city text, industry text,
+  name text not null, legal_name text, domain text, website text, country text, city text, address text, industry text,
   description text, company_type text, products_services text[] not null default '{}', is_mock boolean not null default false,
+  public_business_phone text,
   canonical_key text not null, created_at timestamptz not null default now(), updated_at timestamptz not null default now(),
   unique(user_id, canonical_key)
 );
@@ -40,7 +41,7 @@ create table public.contacts (
   id uuid primary key default gen_random_uuid(), user_id uuid not null references public.users(id) on delete cascade,
   company_id uuid not null references public.companies(id) on delete cascade,
   name text, position text, linkedin_url text, public_business_email text, public_business_phone text,
-  public_whatsapp text, source_url text, source_provider text, verification_status text,
+  public_whatsapp text, social_links jsonb not null default '[]'::jsonb, source_url text, source_provider text, verification_status text,
   confidence numeric(4,3) check (confidence between 0 and 1), retrieved_at timestamptz,
   is_mock boolean not null default false, created_at timestamptz not null default now(), updated_at timestamptz not null default now()
 );
@@ -73,14 +74,14 @@ create table public.search_jobs (
 create table public.search_queries (
   id uuid primary key default gen_random_uuid(), user_id uuid not null references public.users(id) on delete cascade,
   search_job_id uuid not null references public.search_jobs(id) on delete cascade,
-  query text not null, intent text, buyer_type text, structured_plan jsonb, created_at timestamptz not null default now()
+  query text not null, intent text, buyer_type text, use_case text, structured_plan jsonb, created_at timestamptz not null default now()
 );
 
 create table public.search_results (
   id uuid primary key default gen_random_uuid(), user_id uuid not null references public.users(id) on delete cascade,
   search_query_id uuid not null references public.search_queries(id) on delete cascade,
   title text not null, url text not null, snippet text, provider text not null, retrieved_at timestamptz not null,
-  is_mock boolean not null default false, raw_payload jsonb, unique(search_query_id, url)
+  is_mock boolean not null default false, raw_payload jsonb, cache_key text, expires_at timestamptz, unique(search_query_id, url)
 );
 
 create table public.research_jobs (
@@ -88,6 +89,7 @@ create table public.research_jobs (
   company_id uuid references public.companies(id) on delete cascade,
   status text not null default 'pending' check (status in ('pending','running','completed','failed')),
   provider text, is_mock boolean not null default false, error_message text, attempt_count integer not null default 0,
+  cache_key text, expires_at timestamptz, pages_visited text[] not null default '{}',
   started_at timestamptz, completed_at timestamptz, created_at timestamptz not null default now()
 );
 
@@ -125,6 +127,8 @@ create index evidence_company_idx on public.company_evidence(company_id, field);
 create index contacts_company_idx on public.contacts(company_id);
 create index activities_lead_idx on public.activities(lead_id, occurred_at desc);
 create index jobs_status_idx on public.search_jobs(user_id, status, created_at);
+create index search_results_cache_idx on public.search_results(user_id, cache_key, expires_at);
+create index research_jobs_cache_idx on public.research_jobs(user_id, cache_key, expires_at);
 
 alter table public.users enable row level security;
 create policy "users_select_own" on public.users for select to authenticated using ((select auth.uid()) = id);

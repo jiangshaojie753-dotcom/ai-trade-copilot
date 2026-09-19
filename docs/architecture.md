@@ -1,4 +1,4 @@
-# Atlas Phase 1 Architecture
+# AI Trade Copilot Phase 2 Architecture
 
 ## Product architecture
 
@@ -29,20 +29,33 @@ Next.js UI
       └─ Storage (future product files)
 ```
 
-Phase 1 runs its provider layer in Mock mode and keeps CRM records in browser storage. The SQL schema and Supabase clients are prepared, but no cloud project was created. In production, job workers must claim pending jobs server-side; provider secrets must never enter `NEXT_PUBLIC_*` variables.
+Phase 2 keeps the labelled Mock flow and adds a provider-independent real discovery path. CRM records still use browser storage through `LeadRepository`; a Supabase repository can replace it without changing pages. The SQL schema and migrations are prepared, but no cloud project was created. Provider secrets must never enter `NEXT_PUBLIC_*` variables.
+
+```text
+Product + Country
+  -> structured Search Plan
+  -> MockSearchProvider OR RealSearchProvider
+  -> search-result filtering and official-domain candidates
+  -> entity resolution
+  -> public homepage/about/products/contact research
+  -> evidence ledger
+  -> evidence-based buyer inference
+  -> deterministic score
+  -> LeadRepository -> LocalStorage (now) / Supabase (next)
+```
 
 ## Routes
 
 | Route | Purpose | Phase 1 state |
 | --- | --- | --- |
 | `/` | Dashboard and three primary entry points | Complete |
-| `/discover` | Product + market discovery pipeline | Complete with Mock provider |
+| `/discover` | Product + market discovery pipeline | Explicit Real/Mock modes; real adapter needs credentials |
 | `/research` | Known-company research | Complete with Mock research |
 | `/inquiries` | Manual inquiry parsing | Complete with Mock AI |
 | `/leads` | Unified lead database | Complete with local persistence |
 | `/leads/[id]` | Evidence, inference and score detail | Complete |
 | `/products` | Product knowledge base | Schema placeholder |
-| `/api/discover` | Validated discovery orchestration | Mock implementation |
+| `/api/discover` | Validated discovery orchestration | Real/Mock separation with provider errors |
 | `/api/inquiries/analyze` | Validated inquiry extraction | Mock implementation |
 
 ## Provider boundaries
@@ -58,7 +71,7 @@ Zod schemas in `src/lib/schemas.ts` are the runtime contracts for search plannin
 
 ## Entity resolution
 
-The Phase 1 deterministic resolver normalizes domains and company names and scopes matches by country. Later versions should add verified phone/address matching, redirect history, manual merge/unmerge and an audit trail.
+The deterministic resolver matches domain, company name + country, public phone and address. Later versions should add redirect history, manual merge/unmerge and an audit trail.
 
 ## Lead scoring
 
@@ -68,7 +81,7 @@ The program, not the model, calculates the score: Industry 25, Product/Use Case 
 
 | Capability | Needs real provider | Phase 1 |
 | --- | --- | --- |
-| Web search results | Yes — recommended first integration: Google Programmable Search JSON API or Bing-compatible licensed API | Mock |
+| Web search results | Google Programmable Search JSON API | Adapter implemented; key and Search Engine ID absent |
 | AI planning/analysis | Yes — server-side structured-output capable model API | Deterministic Mock |
 | Company/contact enrichment | Yes — compliant licensed B2B data provider | Interface only |
 | Email verification | Yes — verification API | Interface only |
@@ -81,9 +94,9 @@ The program, not the model, calculates the score: Industry 25, Product/Use Case 
 
 Architecture, secure schema, routes, Provider interfaces, Evidence model, structured outputs, three home entries, local CRM and the complete clickable Mock discovery flow. Quality gates include lint, strict typecheck, tests and production build.
 
-### Phase 2
+### Phase 2 — in progress
 
-Create the selected Supabase project, generate and apply a reviewed migration, implement Auth and Postgres repositories, connect the first real Search Provider, connect a real AI Provider, add job processing/rate limits/retries/caching, and build review/approval screens. Do not automate sending.
+The first real Search Provider adapter, short-lived caches, company extraction, official-site research, improved entity resolution, Real/Mock failure handling and the persistence interface are implemented. Remaining work: configure and live-test search, select the single Supabase project, apply reviewed migrations, implement Auth/Postgres persistence and select a real AI adapter. Do not automate sending.
 
 ### Phase 3
 

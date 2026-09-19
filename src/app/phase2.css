@@ -1,0 +1,23 @@
+.data-banner {
+  display: flex;
+  align-items: flex-start;
+  gap: 12px;
+  padding: 14px 16px;
+  border-radius: 11px;
+  margin-bottom: 22px;
+}
+
+.data-banner.real {
+  background: var(--green-2);
+  border: 1px solid #b9ddc9;
+  color: var(--green);
+}
+
+.data-banner.compact { margin: 0; padding: 10px 12px; }
+.data-banner div { display: flex; flex-direction: column; gap: 2px; }
+.data-banner b { font-size: 12px; text-transform: uppercase; letter-spacing: .05em; }
+.data-banner span { font-size: 12px; line-height: 1.45; }
+.error-panel { margin-top: 18px; }
+.error-actions { display: flex; gap: 8px; margin-top: 10px; }
+.company-website { display: inline-flex; align-items: center; gap: 4px; color: var(--green); font-size: 11px; }
+.query-list code small { display: block; margin-top: 3px; color: var(--muted); font-size: 9px; }
