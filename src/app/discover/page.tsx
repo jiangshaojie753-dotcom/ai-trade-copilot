@@ -5,6 +5,9 @@ import { FormEvent, useRef, useState } from "react";
 import { LeadCard } from "@/components/lead-card";
 import { DataModeBanner, Notice, PageHeader, Spinner } from "@/components/ui";
 import { saveLeads } from "@/lib/lead-store";
+import { isSupabaseConfigured } from "@/lib/supabase/config";
+import { createClient } from "@/lib/supabase/client";
+import { SupabaseSearchRepository } from "@/lib/repositories/supabase-search-repository";
 import type { DiscoveryMode, DiscoveryResponse } from "@/lib/discovery-types";
 
 type ErrorState = { message: string; code?: string; retryable?: boolean };
@@ -32,7 +35,15 @@ export default function DiscoverPage() {
       const json = await response.json();
       if (!response.ok) throw Object.assign(new Error(json.error ?? "Discovery failed"), { code: json.code, retryable: json.retryable });
       const next = json as DiscoveryResponse;
-      saveLeads(next.leads);
+      await saveLeads(next.leads);
+      if (isSupabaseConfigured()) {
+        await new SupabaseSearchRepository(createClient()).saveDiscovery(next, {
+          product: String(payload.product),
+          country: String(payload.country),
+          city: payload.city ? String(payload.city) : undefined,
+          buyerType: payload.buyerType ? String(payload.buyerType) : undefined,
+        });
+      }
       setResult((current) => append && current ? mergeResults(current, next) : next);
     } catch (caught) {
       const value = caught as Error & { code?: string; retryable?: boolean };
@@ -80,7 +91,7 @@ export default function DiscoverPage() {
     </form>
     {result ? <section>
       <div className="pipeline">{result.stages.map((stage) => <div className="pipeline-step" key={stage.key}><span><Check size={15} /></span><b>{stage.label}</b><small>{stage.count} items</small></div>)}</div>
-      <div className="section-title"><div><h2>Discovery results</h2><p>{result.leads.length} deduplicated companies saved to the local CRM · {result.dataLabel}</p></div>{result.mode === "real" ? <button className="secondary-button" onClick={discoverMore} disabled={loading}><Search size={15} /> Discover More</button> : null}</div>
+      <div className="section-title"><div><h2>Discovery results</h2><p>{result.leads.length} deduplicated companies saved to CRM · {result.dataLabel}</p></div>{result.mode === "real" ? <button className="secondary-button" onClick={discoverMore} disabled={loading}><Search size={15} /> Discover More</button> : null}</div>
       <div className="result-layout">
         <aside className="content-card plan-panel"><h3><Sparkles size={17} /> Search plan</h3><h4>Use cases</h4><div className="tag-list">{result.plan.use_cases.map((item) => <span key={item}>{item}</span>)}</div><h4>Industries</h4><div className="tag-list">{result.plan.industries.map((item) => <span key={item}>{item}</span>)}</div><h4>Generated queries</h4><div className="query-list">{result.plan.search_queries.map((item) => <code key={item.query}>{item.query}<small>{item.buyer_type} · {item.use_case}</small></code>)}</div><h4>Decision makers</h4><div className="tag-list">{result.plan.decision_maker_roles.map((item) => <span key={item}>{item}</span>)}</div></aside>
         <div className="leads-grid">{result.leads.map((lead) => <LeadCard lead={lead} key={lead.id} />)}</div>

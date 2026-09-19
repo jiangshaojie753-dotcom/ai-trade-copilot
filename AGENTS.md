@@ -26,8 +26,8 @@ Read this file and `HANDOFF.md` before changing code. Preserve existing user wor
 - Zod runtime schemas
 - Vitest tests and ESLint
 - pnpm with pinned package versions and committed lockfile
-- Supabase JS / SSR clients; cloud project not yet provisioned
-- LocalStorage CRM behind `LeadRepository`
+- Supabase JS / SSR clients; use only the existing `QingFeng / ai-trade-copilot` project
+- Authenticated Supabase CRM behind `LeadRepository`, with a LocalStorage development fallback
 
 ## Directory structure
 
@@ -91,7 +91,7 @@ Each component links to supporting evidence IDs. Without verified buying evidenc
 
 ## Current phase
 
-Phase 1 is complete. Phase 2 is in progress. Provider-ready real discovery code, caching, company extraction, public website research, entity resolution, fixed scoring and Real/Mock separation are implemented. No real Search API call has been tested because credentials are absent.
+Phase 1 is complete. Phase 2 is in progress. Provider-ready real discovery, Auth UI, complete initial migration and Supabase repository code are implemented. No real Search API call or cloud migration has been verified from this checkout because credentials/project linking are absent.
 
 ### Working features
 
@@ -102,8 +102,8 @@ Phase 1 is complete. Phase 2 is in progress. Provider-ready real discovery code,
 - Company filtering, domain normalization and entity resolution
 - Public website evidence extraction
 - Evidence-based deterministic buyer inference
-- Fixed score and LocalStorage CRM repository
-- Supabase schema, RLS and migration artifacts
+- Fixed score and Local/Supabase CRM repositories
+- Supabase Auth UI, complete initial schema, RLS and persistence repositories
 
 ### Still Mock or not connected
 
@@ -112,7 +112,7 @@ Phase 1 is complete. Phase 2 is in progress. Provider-ready real discovery code,
 - Known-company `/research` flow
 - Contact enrichment
 - Email verification
-- Supabase Auth and remote persistence
+- Cloud migration/advisor verification (implementation exists but this checkout is not linked)
 
 ### Real-data functions
 
@@ -153,7 +153,7 @@ Use Node.js 22 or later.
 ## Known problems
 
 - No Search API credentials, so Real mode stops with `REAL_SEARCH_NOT_CONFIGURED`.
-- No Supabase project exists; remote persistence and Auth are not active.
+- The intended Supabase project exists as `QingFeng / ai-trade-copilot`, but this checkout has no project ref or environment configuration.
 - Google API quota, billing and whole-web Programmable Search configuration must be confirmed by the owner.
 - Public websites may block automated requests, redirect, return non-HTML, or omit contact data; preserve `Unknown`.
 - AI planning/analysis remains deterministic until a real AI adapter is selected.

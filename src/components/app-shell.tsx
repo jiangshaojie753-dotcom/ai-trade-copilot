@@ -5,6 +5,7 @@ import { usePathname } from "next/navigation";
 import { BarChart3, Building2, Compass, Database, DatabaseZap, Menu, MessageSquareText, Search, Sparkles, X } from "lucide-react";
 import { useState } from "react";
 import { useLeads } from "@/lib/lead-store";
+import { AuthStatus } from "@/components/auth-status";
 
 const links = [
   { href: "/", label: "Dashboard", icon: BarChart3 },
@@ -36,7 +37,7 @@ export function AppShell({ children }: { children: React.ReactNode }) {
         </nav>
         <div className="sidebar-foot">
           <div className="mode-card"><DatabaseZap size={17} /><div><b>Provider-ready</b><span>Real and Mock stay separated</span></div></div>
-          <div className="profile"><span>JS</span><div><b>Sales workspace</b><small>Phase 2 in progress</small></div></div>
+          <div className="profile"><span>JS</span><div><b>Sales workspace</b><AuthStatus /></div></div>
         </div>
       </aside>
       <main className="main-content">{children}</main>

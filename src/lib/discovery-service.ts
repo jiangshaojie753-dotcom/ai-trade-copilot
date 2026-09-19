@@ -3,7 +3,7 @@ import { deduplicateCompanies, normalizeDomain } from "./entity-resolution";
 import { runMockDiscovery } from "./mock-pipeline";
 import { createRealSearchProvider } from "./real-search-provider";
 import { calculateLeadScore } from "./score";
-import { createStructuredSearchPlan, type SearchPlannerInput } from "./search-planner";
+import { planSearchWithFallback, type SearchPlannerInput } from "./search-planner";
 import { leadSchema, type Company, type Evidence, type Lead } from "./schemas";
 import { researchPublicWebsite } from "./website-research";
 import type { DiscoveryMode, DiscoveryResponse } from "./discovery-types";
@@ -22,7 +22,7 @@ export async function runDiscovery(input: DiscoveryInput): Promise<DiscoveryResp
 export async function runRealDiscovery(input: DiscoveryInput): Promise<DiscoveryResponse> {
   const maxCompanies = Math.max(1, Math.min(input.maxCompanies ?? 20, 20));
   const page = Math.max(1, input.page ?? 1);
-  const plan = createStructuredSearchPlan(input);
+  const plan = await planSearchWithFallback(input);
   const provider = createRealSearchProvider();
   const perQueryLimit = Math.max(3, Math.min(10, Math.ceil(maxCompanies / plan.search_queries.length) + 1));
   const nested = await Promise.all(plan.search_queries.map((item) => provider.search({

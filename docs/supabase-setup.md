@@ -1,17 +1,17 @@
 # Supabase setup
 
-No cloud project is currently linked. Do not create a second project when one already exists.
+The intended cloud project is `QingFeng / ai-trade-copilot`, but this checkout has no project-ref link or `.env.local`. Link only that existing project. Do not create a second project.
 
 ## Create or select the project
 
-1. The owner creates one Supabase project and grants the next developer access to that same project.
+1. Select the existing `QingFeng / ai-trade-copilot` project and copy its project ref. Do not create a project.
 2. Copy `.env.example` to `.env.local`.
 3. Set `NEXT_PUBLIC_SUPABASE_URL` and `NEXT_PUBLIC_SUPABASE_PUBLISHABLE_KEY`. The legacy `NEXT_PUBLIC_SUPABASE_ANON_KEY` is accepted only for compatibility.
-4. Keep `SUPABASE_SECRET_KEY` or legacy `SUPABASE_SERVICE_ROLE_KEY` server-only. Neither is required by the current local repository.
+4. Keep `SUPABASE_SECRET_KEY` or legacy `SUPABASE_SERVICE_ROLE_KEY` server-only. Neither is required by browser repositories.
 
 ## Apply and verify the database
 
-Link the CLI to the selected project, review the SQL files, then apply migrations through the normal Supabase migration workflow. `supabase/schema.sql` is the complete reference schema; `supabase/migrations/` contains incremental changes.
+Link the CLI to the selected project, review the SQL files, then apply migrations through the normal Supabase migration workflow. `supabase/schema.sql` is the reference schema. `20260919000000_initial_schema.sql` creates the complete Phase 2 schema from an empty database; later files are incremental.
 
 After migration, verify:
 
@@ -22,4 +22,4 @@ After migration, verify:
 - `anon` has no table privileges;
 - Security Advisor and Performance Advisor have no unreviewed critical findings.
 
-The current app intentionally uses `LocalStorageLeadRepository`. A future `SupabaseLeadRepository` must implement the same `LeadRepository` interface so pages do not change.
+The app selects `SupabaseLeadRepository` when the public project URL/key are configured and otherwise uses `LocalStorageLeadRepository`. Cloud mode requires an authenticated user. Discovery also persists search jobs/queries/results, and inquiry analysis persists inquiry records.

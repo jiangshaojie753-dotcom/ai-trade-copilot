@@ -16,10 +16,10 @@ export default function LeadDetailPage() {
   const [localLead, setLocalLead] = useState<Lead | null>(null);
   const lead = localLead ?? leads.find((item) => item.id === params.id) ?? null;
   if (!lead) return <EmptyState icon={<SearchX />} title="Lead not found" description="This lead may only exist in another browser session."><Link className="action-button" href="/leads">Back to Lead Database</Link></EmptyState>;
-  function changeStatus(status: Lead["status"]) { const next = updateLead(lead!.id, { status }); if (next) setLocalLead(next); }
+  async function changeStatus(status: Lead["status"]) { const next = await updateLead(lead!.id, { status }); if (next) setLocalLead(next); }
   return <>
     <Link className="text-button" href="/leads"><ArrowLeft size={15} /> Back to Lead Database</Link>
-    <PageHeader eyebrow={`${lead.company.buyerType} · ${lead.company.country}`} title={lead.company.name} description={lead.company.description} action={<select aria-label="Lead status" value={lead.status} onChange={(e) => changeStatus(e.target.value as Lead["status"])}>{statuses.map((status) => <option key={status}>{status}</option>)}</select>} />
+    <PageHeader eyebrow={`${lead.company.buyerType} · ${lead.company.country}`} title={lead.company.name} description={lead.company.description} action={<select aria-label="Lead status" value={lead.status} onChange={(e) => void changeStatus(e.target.value as Lead["status"])}>{statuses.map((status) => <option key={status}>{status}</option>)}</select>} />
     <DataModeBanner mode={lead.company.isMock ? "mock" : "real"} />
     <div className="detail-grid">
       <section className="content-card">

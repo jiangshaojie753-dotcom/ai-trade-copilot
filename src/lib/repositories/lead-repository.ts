@@ -1,9 +1,9 @@
 import type { Lead } from "../schemas";
 
 export interface LeadRepository {
-  list(): Lead[];
-  upsertMany(leads: Lead[]): Lead[];
-  update(id: string, patch: Partial<Lead>): Lead | null;
+  list(): Promise<Lead[]>;
+  upsertMany(leads: Lead[]): Promise<Lead[]>;
+  update(id: string, patch: Partial<Lead>): Promise<Lead | null>;
 }
 
 export class LocalStorageLeadRepository implements LeadRepository {
@@ -12,7 +12,11 @@ export class LocalStorageLeadRepository implements LeadRepository {
 
   constructor(private readonly storage: Storage, private readonly key = "atlas-leads-v1") {}
 
-  list(): Lead[] {
+  async list(): Promise<Lead[]> {
+    return this.read();
+  }
+
+  private read(): Lead[] {
     const raw = this.storage.getItem(this.key) ?? "[]";
     if (raw === this.cachedRaw) return this.cachedLeads;
     try {
@@ -24,14 +28,14 @@ export class LocalStorageLeadRepository implements LeadRepository {
     }
   }
 
-  upsertMany(incoming: Lead[]): Lead[] {
-    const byId = new Map(this.list().map((lead) => [lead.id, lead]));
+  async upsertMany(incoming: Lead[]): Promise<Lead[]> {
+    const byId = new Map(this.read().map((lead) => [lead.id, lead]));
     incoming.forEach((lead) => byId.set(lead.id, lead));
     return this.persist([...byId.values()]);
   }
 
-  update(id: string, patch: Partial<Lead>): Lead | null {
-    const leads = [...this.list()];
+  async update(id: string, patch: Partial<Lead>): Promise<Lead | null> {
+    const leads = [...this.read()];
     const index = leads.findIndex((lead) => lead.id === id);
     if (index < 0) return null;
     leads[index] = { ...leads[index], ...patch, updatedAt: new Date().toISOString() };
@@ -48,4 +52,4 @@ export class LocalStorageLeadRepository implements LeadRepository {
   }
 }
 
-// A future Supabase repository must implement this same interface, keeping the UI unchanged.
+// Both browser-local and Supabase implementations use this boundary so pages stay provider-independent.

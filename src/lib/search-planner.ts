@@ -1,4 +1,5 @@
 import { searchPlannerOutputSchema, type SearchPlan } from "./schemas";
+import type { AIProvider } from "./providers";
 
 export type SearchPlannerInput = {
   product: string;
@@ -56,4 +57,19 @@ export function createStructuredSearchPlan(input: SearchPlannerInput): SearchPla
       use_case: useCase,
     })),
   });
+}
+
+export async function planSearchWithFallback(input: SearchPlannerInput, provider?: AIProvider): Promise<SearchPlan> {
+  if (!provider) return createStructuredSearchPlan(input);
+  try {
+    return searchPlannerOutputSchema.parse(await provider.planSearch({
+      product: input.product,
+      description: input.description,
+      country: input.country,
+      city: input.city,
+      buyerType: input.buyerType,
+    }));
+  } catch {
+    return createStructuredSearchPlan(input);
+  }
 }

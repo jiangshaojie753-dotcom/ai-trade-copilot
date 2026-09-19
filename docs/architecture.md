@@ -29,7 +29,7 @@ Next.js UI
       └─ Storage (future product files)
 ```
 
-Phase 2 keeps the labelled Mock flow and adds a provider-independent real discovery path. CRM records still use browser storage through `LeadRepository`; a Supabase repository can replace it without changing pages. The SQL schema and migrations are prepared, but no cloud project was created. Provider secrets must never enter `NEXT_PUBLIC_*` variables.
+Phase 2 keeps the labelled Mock flow and adds a provider-independent real discovery path. CRM records use `SupabaseLeadRepository` when configured and authenticated, with `LocalStorageLeadRepository` as the development fallback. Search and inquiry persistence have their own repository boundaries. Provider secrets must never enter `NEXT_PUBLIC_*` variables.
 
 ```text
 Product + Country
@@ -41,7 +41,7 @@ Product + Country
   -> evidence ledger
   -> evidence-based buyer inference
   -> deterministic score
-  -> LeadRepository -> LocalStorage (now) / Supabase (next)
+  -> LeadRepository -> Supabase (configured production) / LocalStorage (development fallback)
 ```
 
 ## Routes
@@ -96,7 +96,7 @@ Architecture, secure schema, routes, Provider interfaces, Evidence model, struct
 
 ### Phase 2 — in progress
 
-The first real Search Provider adapter, short-lived caches, company extraction, official-site research, improved entity resolution, Real/Mock failure handling and the persistence interface are implemented. Remaining work: configure and live-test search, select the single Supabase project, apply reviewed migrations, implement Auth/Postgres persistence and select a real AI adapter. Do not automate sending.
+The first real Search Provider adapter, caches, company research, entity resolution, Real/Mock failure handling, Auth UI and Supabase repositories are implemented. Remaining work: link the existing single Supabase project, apply/verify migrations and advisors, configure and live-test search, and select a real AI adapter. Do not automate sending.
 
 ### Phase 3
 
