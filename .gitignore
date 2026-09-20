@@ -19,7 +19,11 @@
 
 # misc
 .DS_Store
+.vercel/
 *.pem
+*.key
+*.p12
+*.pfx
 npm-debug.log*
 pnpm-debug.log*
 

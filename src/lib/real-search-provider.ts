@@ -1,8 +1,10 @@
 import { normalizeCachePart, TtlCache } from "./cache";
 import { ProviderError } from "./provider-error";
 import type { SearchInput, SearchProvider, SearchResult } from "./providers";
+import { ProxyAgent } from "undici";
 
 type FetchLike = typeof fetch;
+type ProxyFetchInit = RequestInit & { dispatcher?: ProxyAgent };
 
 type GoogleSearchResponse = {
   items?: Array<{ title?: string; link?: string; snippet?: string }>;
@@ -23,6 +25,7 @@ export type SearchBackend = {
 
 const DEFAULT_TTL_MS = 15 * 60 * 1000;
 const searchCache = new TtlCache<SearchResult[]>(DEFAULT_TTL_MS);
+const proxyAgents = new Map<string, ProxyAgent>();
 
 export class GoogleProgrammableSearchBackend implements SearchBackend {
   readonly name = "Google Programmable Search JSON API";
@@ -105,7 +108,7 @@ export class BraveSearchBackend implements SearchBackend {
       });
     } catch (error) {
       throw new ProviderError(
-        error instanceof Error ? `Brave Search request failed: ${error.message}` : "Brave Search request failed.",
+        `Brave Search request failed: ${describeFetchError(error)}`,
         "SEARCH_PROVIDER_REQUEST_FAILED",
         502,
         true,
@@ -207,7 +210,7 @@ export function createRealSearchProvider(env: Record<string, string | undefined>
         false,
       );
     }
-    return new BraveSearchProvider(apiKey);
+    return new BraveSearchProvider(apiKey, createBraveFetcher(env));
   }
   if (provider === "google_cse") {
     const apiKey = env.SEARCH_API_KEY?.trim();
@@ -223,6 +226,53 @@ export function createRealSearchProvider(env: Record<string, string | undefined>
     return new RealSearchProvider(new GoogleProgrammableSearchBackend(apiKey, searchEngineId));
   }
   throw new ProviderError(`Unsupported SEARCH_PROVIDER: ${provider}.`, "UNSUPPORTED_SEARCH_PROVIDER", 503, false);
+}
+
+function createBraveFetcher(env: Record<string, string | undefined>): FetchLike {
+  const proxyUrl = env.BRAVE_SEARCH_PROXY_URL?.trim()
+    || env.HTTPS_PROXY?.trim()
+    || env.HTTP_PROXY?.trim();
+  if (!proxyUrl) return fetch;
+
+  let parsed: URL;
+  try {
+    parsed = new URL(proxyUrl);
+  } catch {
+    throw new ProviderError(
+      "Brave Search proxy configuration is invalid. Check BRAVE_SEARCH_PROXY_URL, HTTPS_PROXY or HTTP_PROXY.",
+      "SEARCH_PROXY_NOT_CONFIGURED",
+      503,
+      false,
+    );
+  }
+  if (parsed.protocol !== "http:" && parsed.protocol !== "https:") {
+    throw new ProviderError(
+      "Brave Search proxy must use an http:// or https:// URL.",
+      "SEARCH_PROXY_NOT_CONFIGURED",
+      503,
+      false,
+    );
+  }
+
+  let dispatcher = proxyAgents.get(parsed.href);
+  if (!dispatcher) {
+    dispatcher = new ProxyAgent(parsed.href);
+    proxyAgents.set(parsed.href, dispatcher);
+  }
+  const proxyDispatcher = dispatcher;
+  return ((input: Parameters<FetchLike>[0], init?: Parameters<FetchLike>[1]) => fetch(input, {
+    ...init,
+    dispatcher: proxyDispatcher,
+  } as ProxyFetchInit)) as FetchLike;
+}
+
+function describeFetchError(error: unknown) {
+  if (!(error instanceof Error)) return "Unknown network error";
+  const cause = error.cause;
+  if (cause instanceof Error && cause.message && cause.message !== error.message) {
+    return `${error.message} (${cause.message})`;
+  }
+  return error.message;
 }
 
 function stableId(value: string) {

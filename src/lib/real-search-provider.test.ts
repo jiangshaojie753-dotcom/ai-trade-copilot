@@ -84,6 +84,37 @@ describe("real search provider", () => {
     })).toBeInstanceOf(BraveSearchProvider);
   });
 
+  it("uses an environment-configured proxy only for Brave requests", async () => {
+    let capturedInit: (RequestInit & { dispatcher?: unknown }) | undefined;
+    const fetchMock = vi.fn(async (_input: URL | RequestInfo, init?: RequestInit) => {
+      capturedInit = init;
+      return new Response(JSON.stringify({ web: { results: [] } }), {
+        status: 200,
+        headers: { "Content-Type": "application/json" },
+      });
+    });
+    vi.stubGlobal("fetch", fetchMock);
+    try {
+      const provider = createRealSearchProvider({
+        SEARCH_PROVIDER: "brave",
+        BRAVE_SEARCH_API_KEY: "test-key",
+        BRAVE_SEARCH_PROXY_URL: "http://127.0.0.1:9999",
+      });
+      await provider.search({ query: "proxy test query", country: "Kenya" });
+      expect(capturedInit?.dispatcher).toBeDefined();
+    } finally {
+      vi.unstubAllGlobals();
+    }
+  });
+
+  it("rejects invalid Brave proxy configuration before sending a request", () => {
+    expect(() => createRealSearchProvider({
+      SEARCH_PROVIDER: "brave",
+      BRAVE_SEARCH_API_KEY: "test-key",
+      BRAVE_SEARCH_PROXY_URL: "socks5://127.0.0.1:9999",
+    })).toThrowError(expect.objectContaining({ code: "SEARCH_PROXY_NOT_CONFIGURED" }));
+  });
+
   it("rejects Mock-labelled rows from a real backend", async () => {
     const backend: SearchBackend = { name: "Bad", search: async () => [{ ...realResult, isMock: true }] };
     await expect(new RealSearchProvider(backend).search({ query: "q", country: "Kenya" })).rejects.toMatchObject({ code: "DATA_MODE_VIOLATION" });

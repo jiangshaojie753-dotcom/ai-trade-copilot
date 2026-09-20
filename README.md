@@ -42,9 +42,12 @@ For the first real search adapter:
 ```dotenv
 SEARCH_PROVIDER=brave
 BRAVE_SEARCH_API_KEY=
+BRAVE_SEARCH_PROXY_URL=
 ```
 
 Create a Brave Search API subscription and key in the [Brave Search API dashboard](https://api.search.brave.com/app/keys), then place the key only in `.env.local`. Never prefix it with `NEXT_PUBLIC_` or commit it. The older `google_cse` adapter remains available for compatibility but is not the recommended production configuration.
+
+If the Node.js server must use an HTTP proxy to reach Brave, set `BRAVE_SEARCH_PROXY_URL` in `.env.local` and restart the development server. Standard `HTTPS_PROXY` and `HTTP_PROXY` are also supported when the Brave-specific variable is absent. Do not put proxy URLs in source code.
 
 For Supabase, prefer the current publishable/secret key model:
 

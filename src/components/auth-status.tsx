@@ -21,7 +21,7 @@ export function AuthStatus() {
     return () => data.subscription.unsubscribe();
   }, [configured]);
 
-  if (!configured) return <small>Local repository · Supabase not configured</small>;
-  if (!email) return <Link href="/auth" className="text-button">Sign in for cloud CRM</Link>;
-  return <div><small>{email}</small><br /><button className="text-button" onClick={async () => { await createClient().auth.signOut(); }}>Sign out</button></div>;
+  if (!configured) return <small>Local CRM · Supabase not configured</small>;
+  if (!email) return <div><small>Local CRM</small><br /><Link href="/auth" className="text-button">Sign in for Supabase Cloud CRM</Link></div>;
+  return <div><small>Supabase Cloud CRM · {email}</small><br /><button className="text-button" onClick={async () => { await createClient().auth.signOut(); }}>Sign out</button></div>;
 }

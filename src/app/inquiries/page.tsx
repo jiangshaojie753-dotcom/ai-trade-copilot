@@ -4,8 +4,7 @@ import { FormEvent, useState } from "react";
 import { MessageSquareText } from "lucide-react";
 import { MockBanner, Notice, PageHeader, Spinner, StatusPill } from "@/components/ui";
 import type { InquiryAnalysis } from "@/lib/schemas";
-import { isSupabaseConfigured } from "@/lib/supabase/config";
-import { createClient } from "@/lib/supabase/client";
+import { getSupabaseClientForCurrentSession } from "@/lib/supabase/session";
 import { SupabaseInquiryRepository } from "@/lib/repositories/supabase-inquiry-repository";
 
 export default function InquiryPage() {
@@ -28,8 +27,9 @@ export default function InquiryPage() {
       if (!response.ok) throw new Error(json.error);
       const next = json.analysis as InquiryAnalysis;
       setAnalysis(next);
-      if (isSupabaseConfigured()) {
-        await new SupabaseInquiryRepository(createClient()).save({
+      const cloudClient = await getSupabaseClientForCurrentSession();
+      if (cloudClient) {
+        await new SupabaseInquiryRepository(cloudClient).save({
           inquiryText: text,
           buyerName: String(form.get("buyerName") ?? ""),
           companyName: String(form.get("companyName") ?? ""),

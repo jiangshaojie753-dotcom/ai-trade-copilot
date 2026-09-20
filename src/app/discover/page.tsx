@@ -5,8 +5,7 @@ import { FormEvent, useRef, useState } from "react";
 import { LeadCard } from "@/components/lead-card";
 import { DataModeBanner, Notice, PageHeader, Spinner } from "@/components/ui";
 import { saveLeads } from "@/lib/lead-store";
-import { isSupabaseConfigured } from "@/lib/supabase/config";
-import { createClient } from "@/lib/supabase/client";
+import { getSupabaseClientForCurrentSession } from "@/lib/supabase/session";
 import { SupabaseSearchRepository } from "@/lib/repositories/supabase-search-repository";
 import type { DiscoveryMode, DiscoveryResponse } from "@/lib/discovery-types";
 
@@ -36,8 +35,9 @@ export default function DiscoverPage() {
       if (!response.ok) throw Object.assign(new Error(json.error ?? "Discovery failed"), { code: json.code, retryable: json.retryable });
       const next = json as DiscoveryResponse;
       await saveLeads(next.leads);
-      if (isSupabaseConfigured()) {
-        await new SupabaseSearchRepository(createClient()).saveDiscovery(next, {
+      const cloudClient = await getSupabaseClientForCurrentSession();
+      if (cloudClient) {
+        await new SupabaseSearchRepository(cloudClient).saveDiscovery(next, {
           product: String(payload.product),
           country: String(payload.country),
           city: payload.city ? String(payload.city) : undefined,

@@ -2,23 +2,29 @@
 
 import { useEffect, useSyncExternalStore } from "react";
 import type { Lead } from "./schemas";
-import { isSupabaseConfigured } from "./supabase/config";
-import { createClient } from "./supabase/client";
+import { getSupabaseClientForCurrentSession } from "./supabase/session";
 import { LocalStorageLeadRepository, type LeadRepository } from "./repositories/lead-repository";
 import { SupabaseLeadRepository } from "./repositories/supabase-lead-repository";
 
-let repository: LeadRepository | null = null;
+const serverSnapshot: Lead[] = [];
+let repositoryPromise: Promise<LeadRepository> | null = null;
 let snapshot: Lead[] = [];
 let loadingPromise: Promise<void> | null = null;
+let repositoryGeneration = 0;
 const listeners = new Set<() => void>();
 
-function getRepository() {
-  if (!repository) {
-    repository = isSupabaseConfigured()
-      ? new SupabaseLeadRepository(createClient())
-      : new LocalStorageLeadRepository(window.localStorage);
+async function getRepository(): Promise<LeadRepository> {
+  if (!repositoryPromise) {
+    repositoryPromise = createRepository();
   }
-  return repository;
+  return repositoryPromise;
+}
+
+async function createRepository(): Promise<LeadRepository> {
+  const client = await getSupabaseClientForCurrentSession();
+  return client
+    ? new SupabaseLeadRepository(client)
+    : new LocalStorageLeadRepository(window.localStorage);
 }
 
 function emit() {
@@ -38,20 +44,30 @@ function subscribe(callback: () => void) {
 export async function refreshLeads() {
   if (typeof window === "undefined") return;
   if (!loadingPromise) {
-    loadingPromise = getRepository().list()
-      .then((leads) => { snapshot = leads; emit(); })
-      .finally(() => { loadingPromise = null; });
+    const generation = repositoryGeneration;
+    const task = getRepository()
+      .then((activeRepository) => activeRepository.list())
+      .then((leads) => {
+        if (generation !== repositoryGeneration) return;
+        snapshot = leads;
+        emit();
+      });
+    loadingPromise = task;
+    void task.finally(() => {
+      if (loadingPromise === task) loadingPromise = null;
+    });
   }
   return loadingPromise;
 }
 
 export function useLeads(): Lead[] {
   useEffect(() => { void refreshLeads(); }, []);
-  return useSyncExternalStore(subscribe, () => snapshot, () => []);
+  return useSyncExternalStore(subscribe, () => snapshot, () => serverSnapshot);
 }
 
 export async function saveLeads(incoming: Lead[]): Promise<Lead[]> {
-  const saved = await getRepository().upsertMany(incoming);
+  const activeRepository = await getRepository();
+  const saved = await activeRepository.upsertMany(incoming);
   const byId = new Map(snapshot.map((lead) => [lead.id, lead]));
   saved.forEach((lead) => byId.set(lead.id, lead));
   snapshot = [...byId.values()];
@@ -60,7 +76,8 @@ export async function saveLeads(incoming: Lead[]): Promise<Lead[]> {
 }
 
 export async function updateLead(id: string, patch: Partial<Lead>): Promise<Lead | null> {
-  const lead = await getRepository().update(id, patch);
+  const activeRepository = await getRepository();
+  const lead = await activeRepository.update(id, patch);
   if (!lead) return null;
   snapshot = snapshot.map((item) => item.id === id ? lead : item);
   emit();
@@ -68,7 +85,9 @@ export async function updateLead(id: string, patch: Partial<Lead>): Promise<Lead
 }
 
 export function resetLeadRepository() {
-  repository = null;
+  repositoryGeneration += 1;
+  repositoryPromise = null;
+  loadingPromise = null;
   snapshot = [];
   emit();
   void refreshLeads();
